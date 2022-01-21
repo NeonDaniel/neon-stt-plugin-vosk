@@ -8,6 +8,7 @@ from ovos_plugin_manager.templates.stt import STT, StreamThread, StreamingSTT
 from ovos_skill_installer import download_extract_zip, download_extract_tar
 from os.path import join, exists, isdir
 from xdg import BaseDirectory as XDG
+import wave
 
 
 class VoskKaldiSTT(STT):
@@ -85,10 +86,17 @@ class VoskKaldiSTT(STT):
         return lang2url.get(lang)
 
     def execute(self, audio, language=None):
-        self.kaldi.AcceptWaveform(audio.get_wav_data())
+        wf = wave.open(audio, "rb")
+        fs_orig = wf.getframerate()
+        while True:
+            data = wf.readframes(1000)
+            if len(data) == 0:
+                break
+            self.kaldi.AcceptWaveform(data)
         res = self.kaldi.FinalResult()
         res = json.loads(res)
-        return res["text"]
+        audio_length = wf.getnframes() * (1 / fs_orig)
+        return res["text"], audio_length
 
 
 class VoskKaldiStreamThread(StreamThread):
