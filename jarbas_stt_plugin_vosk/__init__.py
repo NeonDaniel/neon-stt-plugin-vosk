@@ -12,12 +12,12 @@ import wave
 
 
 class VoskKaldiSTT(STT):
-    def __init__(self):
+    def __init__(self, lang, *args, **kwargs):
         super().__init__()
         # model_folder for backwards compat
         model_path = self.config.get("model_folder") or self.config.get(
             "model")
-        lang = self.config.get("lang")
+        lang = lang or 'en'
         if not model_path and lang:
             model_path = self.lang2modelurl(lang)
         if model_path and model_path.startswith("http"):
