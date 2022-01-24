@@ -26,12 +26,14 @@ import unittest
 import os
 from jiwer import wer
 from timeit import default_timer as timer
+import re
 
 ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_PATH_EN = os.path.join(ROOT_DIR, "test_audio/en")
 TEST_PATH_FR = os.path.join(ROOT_DIR, "test_audio/fr")
 TEST_PATH_ES = os.path.join(ROOT_DIR, "test_audio/es")
 TEST_PATH_DE = os.path.join(ROOT_DIR, "test_audio/de")
+TEST_PATH_IT = os.path.join(ROOT_DIR, "test_audio/it")
 
 def transliteration(transcription, text, lang):
     transliterated = []
@@ -43,6 +45,10 @@ def transliteration(transcription, text, lang):
                          'o': ['ô', 'ò'], 'u': ['û', 'ù', 'ü']}
     if lang == 'es':
         translit_dict = {'a': ['á'], 'i': ['í'], 'e': ['é'], 'n': ['ñ'], 'o': ['ó'], 'u': ['ú', 'ü']}
+    if lang == 'de':
+        translit_dict = {'a': ['ä'], 's': ['ß'], 'o': ['ö'], 'u': ['ú', 'ü']}
+    transcription = re.sub("`|'|-", "", transcription)
+    text = re.sub("`|'|-", "", text)
     if len(transcription.strip()) == len(text.strip()):
         for ind, letter in enumerate(transcription):
             if letter in translit_dict.keys():
@@ -50,6 +56,8 @@ def transliteration(transcription, text, lang):
                     for l in translit_dict[letter]:
                         if l == text[ind]:
                                 transliterated.append(l)
+                        else:
+                            transliterated.append(letter)
                 else:
                         transliterated.append(letter)
             else:
@@ -85,47 +93,59 @@ class TestGetSTT(unittest.TestCase):
     def test_fr_stt(self):
         LOG.info("FRENCH STT MODEL")
         stt = VoskKaldiSTT('fr')
-        LOG.info('Running inference.')
         for file in os.listdir(TEST_PATH_FR):
             inference_start = timer()
             transcription = ' '.join(file.split('_')[:-1]).lower()
             path = ROOT_DIR + '/test_audio/fr/' + file
-            text = stt.execute(path, language=None)
-            error = wer(transcription.strip(), text[0].strip())
-            LOG.info('Input: {}\nOutput:{}\nWER: {}'.format(transcription, text[0], error))
+            text = stt.execute(path)
+            result = transliteration(transcription, text[0], 'fr')
+            LOG.info('Input: {}\nOutput:{}\nWER: {}'.format(result[1], result[2], result[0]))
             inference_end = timer() - inference_start
             LOG.info('Inference took %0.3fs for %0.3fs audio file.' % (inference_end, text[1]))
-            self.assertTrue(error < 0.6)
+            self.assertTrue(result[0] < 0.6)
 
     def test_es_stt(self):
         LOG.info("SPANISH STT MODEL")
         stt = VoskKaldiSTT('es')
-        LOG.info('Running inference.')
         for file in os.listdir(TEST_PATH_ES):
             inference_start = timer()
             transcription = ' '.join(file.split('_')[:-1]).lower()
             path = ROOT_DIR + '/test_audio/es/' + file
-            text = stt.execute(path, language=None)
-            error = wer(transcription.strip(), text[0].strip())
-            LOG.info('Input: {}\nOutput:{}\nWER: {}'.format(transcription, text[0], error))
+            text = stt.execute(path)
+            result = transliteration(transcription, text[0], 'es')
+            LOG.info('Input: {}\nOutput:{}\nWER: {}'.format(result[1], result[2], result[0]))
             inference_end = timer() - inference_start
             LOG.info('Inference took %0.3fs for %0.3fs audio file.' % (inference_end, text[1]))
-            self.assertTrue(error < 0.6)
+            self.assertTrue(result[0] < 0.6)
 
     def test_de_stt(self):
         LOG.info("GERMAN STT MODEL")
         stt = VoskKaldiSTT('de')
-        LOG.info('Running inference.')
         for file in os.listdir(TEST_PATH_DE):
             inference_start = timer()
             transcription = ' '.join(file.split('_')[:-1]).lower()
             path = ROOT_DIR + '/test_audio/de/' + file
-            text = stt.execute(path, language=None)
-            error = wer(transcription.strip(), text[0].strip())
-            LOG.info('Input: {}\nOutput:{}\nWER: {}'.format(transcription, text[0], error))
+            text = stt.execute(path)
+            result = transliteration(transcription, text[0], 'de')
+            LOG.info('Input: {}\nOutput:{}\nWER: {}'.format(result[1], result[2], result[0]))
             inference_end = timer() - inference_start
             LOG.info('Inference took %0.3fs for %0.3fs audio file.' % (inference_end, text[1]))
-            self.assertTrue(error < 0.6)
+            self.assertTrue(result[0] < 0.6)
+
+    def test_it_stt(self):
+        LOG.info("ITALIAN STT MODEL")
+        stt = VoskKaldiSTT('it')
+        for file in os.listdir(TEST_PATH_IT):
+            inference_start = timer()
+            transcription = ' '.join(file.split('_')[:-1]).lower()
+            path = ROOT_DIR + '/test_audio/it/' + file
+            text = stt.execute(path)
+            result = transliteration(transcription, text[0], 'it')
+            LOG.info('Input: {}\nOutput:{}\nWER: {}'.format(result[1], result[2], result[0]))
+            inference_end = timer() - inference_start
+            LOG.info('Inference took %0.3fs for %0.3fs audio file.' % (inference_end, text[1]))
+            self.assertTrue(result[0] < 0.6)
+
 
 if __name__ == '__main__':
     unittest.main()
